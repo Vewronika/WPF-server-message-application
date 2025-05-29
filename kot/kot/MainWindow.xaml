@@ -5,7 +5,7 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:kot"
         mc:Ignorable="d"
-        Title="Group Chat" Height="800" Width="480" MinHeight="420" MinWidth="240">
+        Title="Group Chat" Height="550" Width="480" MinHeight="420" MinWidth="240" WindowStartupLocation="CenterScreen">
 
 
     <Window.Resources>
@@ -14,7 +14,15 @@
             <TextBlock Text="{Binding Content}" Foreground="DarkGray" FontWeight="Bold" FontSize="14"
                        TextAlignment="Center" Margin="5" HorizontalAlignment="Center"></TextBlock>
         </DataTemplate>
-        
+
+        <Style TargetType="ListBoxItem">
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="Focusable" Value="False"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="IsHitTestVisible" Value="False"/>
+        </Style>
+
+
     </Window.Resources>
     
     <Grid>
@@ -41,15 +49,45 @@
 
         <ScrollViewer VerticalScrollBarVisibility="Auto" Grid.Row="1" Margin="0,0,10,0">
 
-            <ListView Name="Messages" Background="White" IsSynchronizedWithCurrentItem="True" Height="711">
+            <ListBox Name="MessagesListView" ItemsSource="{Binding Messages}"  Background="White" IsSynchronizedWithCurrentItem="True" Height="711">
+
+                <ListBox.Resources>
+
+                    <DataTemplate DataType="{x:Type local:Message}">
+                        <Border CornerRadius="13" Padding="9" Margin="5" MaxWidth="200">
+                            <Border.Style>
+                                <Style TargetType="Border">
+                                    <Setter Property="Background" Value="DarkOrange"/>
+                                    <Setter Property="HorizontalAlignment" Value="Left"/>
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding Username}" Value="System">
+                                            <Setter Property="Background" Value="DarkGray"/>
+                                            <Setter Property="HorizontalAlignment" Value="Center"/>
+                                        </DataTrigger>
+                                        <DataTrigger Binding="{Binding IsOwnMessage}" Value="True">
+                                            <Setter Property="Background" Value="DarkOrange"/>
+                                            <Setter Property="HorizontalAlignment" Value="Right"/>
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </Border.Style>
+
+                            <StackPanel>
+                                <TextBlock Text="{Binding Username}" Foreground="White" FontWeight="Bold"/>
+                                <TextBlock Text="{Binding Content}" Foreground="White" TextWrapping="Wrap" Margin="0,5,0,0"/>
+                                <TextBlock Text="{Binding TimeStamp, StringFormat='{}{0:HH:mm}'}" Foreground="LightGray" HorizontalAlignment="Right" FontSize="10"/>
+                            </StackPanel>
+                        </Border>
+                    </DataTemplate>
+
+                </ListBox.Resources>
 
 
-
-            </ListView>
+            </ListBox>
         </ScrollViewer>
 
 
-        <Grid Grid.Row="1" Margin="5">
+   <!--     <Grid Grid.Row="1" Margin="5">
             <Border Name="SystemMessageA" Background="DarkGray" CornerRadius="10" Margin="20"
                     HorizontalAlignment="Center" VerticalAlignment="Center">
                 <TextBlock Name="SystemMessageAText"
@@ -58,7 +96,7 @@
                     
                 </TextBlock>
             </Border>
-        </Grid>
+        </Grid> -->
 
 
 

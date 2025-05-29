@@ -1,4 +1,5 @@
-﻿using System.Text;
+﻿using System.Collections.ObjectModel;
+using System.Text;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Data;
@@ -18,17 +19,22 @@ namespace kot
 
     public class Message
     {
-        public string message { get; set; }
+        public string Username { get; set; }
+        public string Content { get; set; }
         public DateTime TimeStamp { get; set; } = DateTime.Now;
+        public bool IsOwnMessage { get; set; }
     }
 
 
 
     public partial class MainWindow : Window
     {
+        public ObservableCollection<Message> Messages { get; set; } = new ObservableCollection<Message>();
+
         public MainWindow()
         {
             InitializeComponent();
+            this.DataContext = this;
         }
 
         private void MenuItem_Exit(object sender, RoutedEventArgs e)
@@ -40,9 +46,18 @@ namespace kot
 
         private void SendButton_Click(object sender, RoutedEventArgs e)
         {
-            string message = SendBox.Text;
 
-            SendBox.Clear();
+            if (!string.IsNullOrWhiteSpace(SendBox.Text))
+            {
+                var newMessage = new Message
+                {
+                    Username = "User1",
+                    Content = SendBox.Text
+                };
+
+                Messages.Add(newMessage);
+                SendBox.Clear();
+            }
         }
 
         private void MenuItem_About(object sender, RoutedEventArgs e)
@@ -56,19 +71,35 @@ namespace kot
 
         private void MenuItem_Connect_Click(object sender, RoutedEventArgs e)
         {
-            MenuItem_Connect.IsEnabled = false;
-            MenuItem_Disconnect.IsEnabled = true;
+            var dialog = new ConnectionWindow();
+            dialog.Owner = this;
 
-            SystemMessageAText.Text = "Connected";
-            SystemMessageA.Visibility = Visibility.Visible;
+            if (dialog.ShowDialog() == true)
+            {
+                MenuItem_Connect.IsEnabled = false;
+                MenuItem_Disconnect.IsEnabled = true;
+
+                Messages.Add(new Message
+                {
+                    Username = "System",
+                    Content = "Connected"
+                });
+            }
+
         }
 
         private void MenuItem_Disconnect_Click(object sender, RoutedEventArgs e)
         {
             MenuItem_Connect.IsEnabled = true;
             MenuItem_Disconnect.IsEnabled = false;
-            SystemMessageAText.Text = "Disonnected";
-            SystemMessageA.Visibility = Visibility.Visible;
+            /*            SystemMessageAText.Text = "Disonnected";
+                        SystemMessageA.Visibility = Visibility.Visible;*/
+
+            Messages.Add(new Message
+            {
+                Username = "System",
+                Content = "Disonnected"
+            });
         }
 
         private void SendBox_PreviewKeyDown(object sender, KeyEventArgs e)
@@ -85,10 +116,17 @@ namespace kot
 
                 else
                 {
+                    if (!string.IsNullOrWhiteSpace(SendBox.Text))
+                    {
+                        var newMessage = new Message
+                        {
+                            Username = "User1",
+                            Content = SendBox.Text
+                        };
 
-                    string message = SendBox.Text;
-
-                    SendBox.Clear();
+                        Messages.Add(newMessage);
+                        SendBox.Clear();
+                    }
 
                     e.Handled = true;
                 }
