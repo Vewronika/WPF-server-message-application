@@ -26,7 +26,7 @@
                      
                         <StackPanel Orientation="Horizontal" Margin="0,0,0,5">
                             <TextBlock Text="Username:" VerticalAlignment="Center" Width="70" />
-                            <PasswordBox x:Name="UsernameBox" Width="120" Margin="0,0,10,0"/>
+                            <TextBox x:Name="UsernameBox" Width="120" Margin="0,0,10,0"/>
                             <TextBlock Text="Password:" VerticalAlignment="Center" Width="70"/>
                             <PasswordBox x:Name="PasswordBox" Width="120"/>
                         </StackPanel>
@@ -46,7 +46,7 @@
 
                 <GroupBox Header="Server Log">
                     <ScrollViewer VerticalScrollBarVisibility="Auto" Height="350">
-                        <TextBlock x:Name="ServerLog" TextWrapping="Wrap" />
+                        <TextBox x:Name="ServerLog" IsReadOnly="True" VerticalScrollBarVisibility="Auto" TextWrapping="Wrap"/>
                     </ScrollViewer>
                 </GroupBox>
             </StackPanel>
