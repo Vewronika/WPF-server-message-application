@@ -1,4 +1,6 @@
 ﻿using System.Collections.ObjectModel;
+using System.IO;
+using System.Net.Sockets;
 using System.Text;
 using System.Windows;
 using System.Windows.Controls;
@@ -31,6 +33,12 @@ namespace kot
     {
         public ObservableCollection<Message> Messages { get; set; } = new ObservableCollection<Message>();
 
+        private TcpClient _tcpClient;
+        private StreamReader _reader;
+        private StreamWriter _writer;
+        private string username;
+
+
         public MainWindow()
         {
             InitializeComponent();
@@ -51,11 +59,15 @@ namespace kot
             {
                 var newMessage = new Message
                 {
-                    Username = "User1",
-                    Content = SendBox.Text
+                    Username = username,
+                    Content = SendBox.Text,
+                    IsOwnMessage = true
                 };
 
                 Messages.Add(newMessage);
+
+                _writer.WriteLine(SendBox.Text);
+
                 SendBox.Clear();
             }
         }
@@ -76,20 +88,65 @@ namespace kot
 
             if (dialog.ShowDialog() == true)
             {
-                MenuItem_Connect.IsEnabled = false;
-                MenuItem_Disconnect.IsEnabled = true;
-
-                Messages.Add(new Message
+                try
                 {
-                    Username = "System",
-                    Content = "Connected"
-                });
+                    _tcpClient = new TcpClient("127.0.0.1", 5000);
+                    var stream = _tcpClient.GetStream();
+                    _reader = new StreamReader(stream, Encoding.UTF8);
+                    _writer = new StreamWriter(stream, Encoding.UTF8) { AutoFlush = true };
+
+
+                    username = dialog.UsernameBox.Text;
+                    _writer.WriteLine(username);
+                    _writer.WriteLine(dialog.PasswordBox.Password);
+                    _writer.Flush();
+
+
+                    string response = _reader.ReadLine();
+                    if (response == "AUTH_OK")
+                    {
+                        MenuItem_Connect.IsEnabled = false;
+                        MenuItem_Disconnect.IsEnabled = true;
+
+                        Messages.Add(new Message
+                        {
+                            Username = "System",
+                            Content = "Connected"
+                        });
+                    }
+                    else
+                    {
+                        Messages.Add(new Message
+                        {
+                            Username = "System",
+                            Content = "Authentication failed."
+                        });
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Messages.Add(new Message
+                    {
+                        Username = "System",
+                        Content = $"Connection error: {ex.Message}"
+                    });
+                }
             }
 
         }
 
         private void MenuItem_Disconnect_Click(object sender, RoutedEventArgs e)
         {
+
+            try
+            {
+                _writer?.Close();
+                _reader?.Close();
+                _tcpClient?.Close();
+            }
+            catch { }
+
+
             MenuItem_Connect.IsEnabled = true;
             MenuItem_Disconnect.IsEnabled = false;
             /*            SystemMessageAText.Text = "Disonnected";
@@ -120,8 +177,9 @@ namespace kot
                     {
                         var newMessage = new Message
                         {
-                            Username = "User1",
-                            Content = SendBox.Text
+                            Username = username,
+                            Content = SendBox.Text,
+                            IsOwnMessage = true
                         };
 
                         Messages.Add(newMessage);
@@ -138,6 +196,9 @@ namespace kot
         {
 
         }
+
+
+
     }
 
 

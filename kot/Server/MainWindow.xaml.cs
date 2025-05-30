@@ -101,6 +101,30 @@ namespace Server
             });
         }
 
+        private void BroadcastBox_KeyDown(object sender, KeyEventArgs e)
+        {
+            if (e.Key == Key.Enter)
+            {
+                if (Keyboard.Modifiers.HasFlag(ModifierKeys.Shift))
+                {
+                    int ind = BroadcastBox.CaretIndex;
+                    BroadcastBox.Text = BroadcastBox.Text.Insert(ind, Environment.NewLine);
+                    BroadcastBox.CaretIndex = ind + Environment.NewLine.Length;
+                    e.Handled = true;
+                }
+                else
+                {
+                    string message = BroadcastBox.Text.Trim();
+                    if (!string.IsNullOrEmpty(message))
+                    {
+                        server?.BroadcastSystemMessage(message);
+                        AppendLog($"[Broadcast] {message}");
+                        BroadcastBox.Clear();
+                    }
+                    e.Handled = true;
+                }
+            }
+        }
     }
 
 
@@ -219,13 +243,26 @@ namespace Server
             public void BroadcastSystemMessage(string message)
             {
                 Log(message);
-                foreach (var client in clients)
+/*                foreach (var client in clients)
+                    client.SendMessage($"[SYSTEM]: {message}");*/
+
+            foreach (var client in clients.ToList())
+            {
+                try
+                {
                     client.SendMessage($"[SYSTEM]: {message}");
+                }
+                catch (Exception ex)
+                {
+                    Log($"Failed to send system message to '{client.Username}': {ex.Message}");
+                }
             }
 
+        }
 
 
-            public void KickClient(string username)
+
+        public void KickClient(string username)
             {
                 var client = clients.Find(c => c.Username == username);
                 if (client != null)
@@ -263,49 +300,63 @@ namespace Server
             }
 
 
-            public void HandleClient()
+        public void HandleClient()
+        {
+            try
             {
-                try
+                _stream = tcpClient.GetStream();
+                _reader = new StreamReader(_stream, Encoding.UTF8);
+                _writer = new StreamWriter(_stream, Encoding.UTF8) { AutoFlush = true };
+
+                var attemptedUsername = _reader.ReadLine();
+                if (string.IsNullOrWhiteSpace(attemptedUsername))
                 {
-                    _stream = tcpClient.GetStream();
-                    _reader = new StreamReader(_stream, Encoding.UTF8);
-                    _writer = new StreamWriter(_stream, Encoding.UTF8) { AutoFlush = true };
-
-                    Username = _reader.ReadLine();
-                    Log($"Connection attempt from '{Username}'");
-
-                    string password = _reader.ReadLine();
-
-                    if (password == expectedPassword)
-                    {
-                        SendMessage("AUTH_OK");
-                        Authorized?.Invoke(this);
-                    }
-                    else
-                    {
-                        SendMessage("AUTH_FAIL");
-                        Disconnect();
-                        return;
-                    }
-
-                    string message;
-                    while ((message = _reader.ReadLine()) != null)
-                    {
-                        MessageReceived?.Invoke(this, message);
-                    }
-                }
-                catch (Exception ex)
-                {
-                    Log($"Error with client '{Username}': {ex.Message}");
-                }
-                finally
-                {
+                    Log("Client did not provide a username.");
                     Disconnect();
+                    return;
+                }
+
+                Username = attemptedUsername;
+                Log($"Connection attempt from '{Username}'");
+
+                string password = _reader.ReadLine();
+                if (string.IsNullOrWhiteSpace(password))
+                {
+                    Log($"Client '{Username}' did not provide a password.");
+                    Disconnect();
+                    return;
+                }
+
+                if (password == expectedPassword)
+                {
+                    SendMessage("AUTH_OK");
+                    Authorized?.Invoke(this);
+                }
+                else
+                {
+                    SendMessage("AUTH_FAIL");
+                    Disconnect();
+                    return;
+                }
+
+                string message;
+                while ((message = _reader.ReadLine()) != null)
+                {
+                    MessageReceived?.Invoke(this, message);
                 }
             }
+            catch (Exception ex)
+            {
+                Log($"Error with client '{Username}': {ex.Message}");
+            }
+            finally
+            {
+                Disconnect();
+            }
+        }
 
 
-            public void SendMessage(string message)
+        public void SendMessage(string message)
             {
                 try
                 {
@@ -316,6 +367,7 @@ namespace Server
                     Log($"Send error to '{Username}': {ex.Message}");
                 }
             }
+
 
 
             public void Disconnect()
